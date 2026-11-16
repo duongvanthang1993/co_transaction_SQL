@@ -1,6 +1,7 @@
 package com.codegym.dao;
 
 import com.codegym.model.User;
+import java.sql.SQLException;
 import java.util.List;
 
 public interface IUserDAO {
@@ -13,4 +14,6 @@ public interface IUserDAO {
     public boolean deleteUser(int id) throws Exception;
 
     public boolean updateUser(User user) throws Exception;
+
+    public void insertUpdateUseTransaction() throws SQLException;
 }

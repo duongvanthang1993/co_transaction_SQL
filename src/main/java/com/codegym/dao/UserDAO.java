@@ -1,11 +1,15 @@
 package com.codegym.dao;
 
 import com.codegym.model.User;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +24,13 @@ public class UserDAO implements IUserDAO {
     private static final String SELECT_ALL_USERS = "SELECT * FROM users;";
     private static final String DELETE_USERS_SQL = "DELETE FROM users WHERE id = ?;";
     private static final String UPDATE_USERS_SQL = "UPDATE users SET name = ?, email = ?, country = ? WHERE id = ?;";
+
+    private static final String SQL_INSERT = "INSERT INTO Employee (name, salary, created_Date) VALUES (?,?,?)";
+    private static final String SQL_UPDATE = "UPDATE Employee SET salary=? WHERE name=?";
+    private static final String SQL_TABLE_CREATE = "CREATE TABLE Employee" + "(" + " id INT(11) AUTO_INCREMENT,"
+            + " name VARCHAR(100) NOT NULL," + " salary DECIMAL(15, 2) NOT NULL," + " created_Date TIMESTAMP,"
+            + " PRIMARY KEY (id)" + ")";
+    private static final String SQL_TABLE_DROP = "DROP TABLE IF EXISTS Employee";
 
     public UserDAO() {
     }
@@ -108,5 +119,54 @@ public class UserDAO implements IUserDAO {
             rowUpdated = statement.executeUpdate() > 0;
         }
         return rowUpdated;
+    }
+
+    @Override
+    public void insertUpdateUseTransaction() {
+        try (Connection conn = getConnection();
+             Statement statement = conn.createStatement();
+             PreparedStatement psInsert = conn.prepareStatement(SQL_INSERT);
+             PreparedStatement psUpdate = conn.prepareStatement(SQL_UPDATE)) {
+
+            statement.execute(SQL_TABLE_DROP);
+            statement.execute(SQL_TABLE_CREATE);
+
+            // ==========================================
+            // 1. BẮT ĐẦU TRANSACTION BLOCK
+            // Tắt chế độ lưu tự động (mặc định là true)
+            // ==========================================
+            conn.setAutoCommit(false); 
+
+            // 2. Chạy danh sách lệnh Insert
+            psInsert.setString(1, "Quynh");
+            psInsert.setBigDecimal(2, new BigDecimal(10));
+            psInsert.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            psInsert.execute();
+
+            psInsert.setString(1, "Ngan");
+            psInsert.setBigDecimal(2, new BigDecimal(20));
+            psInsert.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            psInsert.execute();
+
+            // 3. Chạy lệnh Update (Đã sửa lỗi để test trường hợp thành công)
+            // psUpdate.setBigDecimal(2, new BigDecimal(999.99));
+            psUpdate.setBigDecimal(1, new BigDecimal(999.99));
+            psUpdate.setString(2, "Quynh");
+            psUpdate.execute();
+
+            // ==========================================
+            // 4. KẾT THÚC TRANSACTION BLOCK
+            // Nếu code chạy trót lọt đến đây, tiến hành ghi dữ liệu
+            // ==========================================
+            conn.commit();
+            
+            // Thói quen tốt: Bật lại chế độ auto-commit về mặc định
+            conn.setAutoCommit(true);
+
+        } catch (Exception e) {
+            System.out.println("Lỗi xảy ra, Transaction sẽ tự động huỷ bỏ (rollback) khi đóng kết nối!");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
